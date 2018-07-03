@@ -132,9 +132,12 @@ class WaApiClient(object):
             else:
                 method = "POST"
 
+        print(api_url)
+
         request = urllib.request.Request(api_url, method=method)
         if api_request_object is not None:
             request.data = json.dumps(api_request_object).encode()
+
 
         request.add_header("Content-Type", "application/json")
         request.add_header("Accept", "application/json")
@@ -226,7 +229,13 @@ class WaApiClient(object):
         return py_date
 
     def DateTimeToWADate(self, py_date):
-        return py_date.strptime('%Y-%m-%dT%H:%M:%S%z')
+        # if isinstance(py_date, datetime.datetime):
+            return py_date.strftime('%Y-%m-%dT%H:%M:%S')
+        # elif isinstance(py_date, datetime.date):
+        #     return py_date.strftime('%d+%b+%Y')
+        # elif isinstance(py_date, datetime.date):
+        #     return py_date.strftime('%Y-%m-%d')
+
 
 
 
@@ -248,8 +257,8 @@ class WaApiClient(object):
     def GetAllContacts(self):
         return self._make_api_request('/Contacts?$async=false')
 
-    def GetFilteredContacts(contacts, filter):
-        return self._make_api_request('/Contacts?$async=false&$filter=%s' % (filter))
+    def GetFilteredContacts(self, filter):
+        return self._make_api_request('Contacts?$async=false&$filter=%s' % (filter))
 
     def GetMemberGroups(self):
         return self._make_api_request('/MemberGroups')
@@ -261,6 +270,17 @@ class WaApiClient(object):
     def GetContactByEmail(self, contact_email): 
         contact = self._make_api_request('/Contacts/?$async=false&$filter=email+eq+' + contact_email)
         return contact
+
+    def GetContactByNameAndDOB(self, contact_first_name, contact_last_name, contact_DOB):
+        contact_DOB = self.DateTimeToWADate(contact_DOB)
+        contact = self._make_api_request("/Contacts/?$async=false&$filter=firstname+eq+%s+AND+lastname+eq+%s+AND+DOB+eq+'%s'" % (contact_first_name, contact_last_name, contact_DOB))
+
+    def GetContactByName(self, contact_first_name, contact_last_name):
+        contact = self._make_api_request("/Contacts/?$async=false&$filter='First+name'+eq+'%s'" % (contact_first_name))
+
+    def GetContactByDOB(self, contact_DOB):
+        contact_DOB = self.DateTimeToWADate(contact_DOB)
+        contact = self._make_api_request("/Contacts/?$async=false&$filter=DOB+le+'%s'" % (contact_DOB))
 
     def UpdateContact(self, contact_id, data):
         return self._make_api_request('https://api.wildapricot.org/v2.1/accounts/84576/Contacts/%d' %(contact_id), data, method="PUT")
@@ -299,6 +319,13 @@ class WaApiClient(object):
                 for group_id in group_ids:
                     field["Value"].append({'Id': group_id})
         return self._make_api_request('https://api.wildapricot.org/v2.1/accounts/84576/Contacts/%d' %(contact_id), data, method="PUT")
+
+    def SetArchived(self, contact_id):
+        pass
+
+    def GetContactFields(self):
+        self._make_api_request('ContactFields')
+
 
 
 ##############################
@@ -420,6 +447,64 @@ class WaApiClient(object):
         filter_string = "?StartDate="+ start_date + "&EndDate="+end_date+"&Void=True"
         invoices = self._make_api_request("Invoices"+filter_string)
         return invoices
+
+    def CreateInvoice(self, contact_id, items, creator_id=None, created_date=None):
+        if created_date == None:
+            created_date = self.DateTimeToWADate(datetime.datetime.now())
+        data =  {
+                    "OrderDetails": [],  
+                    "Contact": {"Id": contact_id},
+                    "CreatedDate": created_date,
+                    "CreatedBy": {"Id": creator_id},
+                }
+        
+        data["OrderDetails"].append(items)
+        print(data)
+        invoice = self._make_api_request("Invoices", data, method="POST")
+        return invoice
+
+    def FormatInvoiceItem(self, value, notes, taxes=None):
+        item =  {
+                  "Value": value,
+                  "Taxes": taxes,   
+                  "Notes": notes,
+                }
+        return item
+
+##############################
+# Payments
+##############################
+    def CreatePayment(self, contact_id, amount, tender, invoice_id=None, comment=None):
+        if isinstance(tender, str):
+            tender_id = self.GetTenderByName(tender)['Id']
+        elif isinstance(tender, int):
+            tender_id = tender
+        if not comment:
+            comment = "API Generated Payment"
+        data = {
+            "Value":amount,
+            "Contact":{"Id":contact_id},
+            "Tender":{"Id":tender_id},
+            "Comment":comment,
+        }
+        if invoice_id:
+            data["invoices"] = [{"Id":invoice_id}]
+        self._make_api_request('Payments/', data, method="POST")
+
+##############################
+# Tenders
+##############################
+    def GetTenders(self):
+        tenders = self._make_api_request("Tenders")
+        return tenders
+
+    def GetTenderByName(self, name):
+        tenders = self.GetTenders()
+        for tender in tenders:
+            if tender["Name"] == name:
+                return tender
+        return None
+
 
 ##############################
 # Logs
