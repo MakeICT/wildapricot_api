@@ -262,7 +262,7 @@ class WaApiClient(object):
 
     def DateTimeToWADate(self, py_date):
         # if isinstance(py_date, datetime.datetime):
-        return py_date.strftime(py_date, '%Y-%m-%dT%H:%M:%S')
+        return py_date.strftime('%Y-%m-%dT%H:%M:%S')
         # elif isinstance(py_date, datetime.date):
         #     return py_date.strftime('%d+%b+%Y')
         # elif isinstance(py_date, datetime.date):
