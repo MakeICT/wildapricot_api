@@ -33,7 +33,7 @@ class WaApiClient(object):
         api_key -- secret api key from account settings
         scope -- optional scope of authentication request. If None full list of API scopes will be used.
         """
-        print("authenticate_with_apikey")
+        # print("authenticate_with_apikey")
         self.api_endpoint = "https://api.wildapricot.org"
         if(api_key):
             self.client_id = 'APIKEY'
@@ -128,7 +128,7 @@ class WaApiClient(object):
         api_request_object -- any json serializable object to send to API
         method -- HTTP method of api request. Default: GET if api_request_object is None else POST
         """
-        print("execute_request")
+        # print("execute_request")
         if self._token is None:
             raise Exception("Access token is not abtained. "
                                "Call authenticate_with_apikey or authenticate_with_contact_credentials first.")
@@ -145,7 +145,7 @@ class WaApiClient(object):
             else:
                 method = "POST"
 
-        print(api_url)
+        # print(api_url)
 
         request = urllib.request.Request(api_url, method=method)
         if api_request_object is not None:
@@ -166,18 +166,18 @@ class WaApiClient(object):
                 raise
 
     def _get_access_token(self):
-        print("_get_access_token")
+        # print("_get_access_token")
         expires_at = self._token['retrieved_at'] + datetime.timedelta(seconds=self._token['expires_in'] - 100)
-        print("token expires at:", expires_at)
+        # print("token expires at:", expires_at)
         if datetime.datetime.now() > expires_at:
             self.authenticate_with_apikey(None)
             # self._refresh_auth_token()
-        print(self._token)
+        # print(self._token)
         # print(self._token['refresh_token'][14:])
         return self._token['access_token']
 
     def _refresh_auth_token(self):
-        print("_refresh_auth_token")
+        # print("_refresh_auth_token")
         data = {
             "grant_type": "refresh_token",
         }
@@ -192,19 +192,19 @@ class WaApiClient(object):
         request.add_header("Authorization", 'Basic ' + auth_header)
         # request.add_header("Postman-Token", "43ab3ad9-f359-4483-af5b-02e3b0e8cfdc")
         request.add_header("Cache-Control", "no-cache")
-        pprint(request.__dict__)
+        # pprint(request.__dict__)
 
 
         response = urllib.request.urlopen(request)
 
-        pprint(response.__dict__)
+        # pprint(response.__dict__)
 
         self._token = WaApiClient._parse_response(response)
         self._token['retrieved_at'] = datetime.datetime.now()
 
     @staticmethod
     def _parse_response(http_response):
-        print("_parse_response")
+        # print("_parse_response")
         response = http_response.read().decode()
         #print ("response: ", response)
         decoded = json.loads(response)
@@ -217,7 +217,7 @@ class WaApiClient(object):
 
 
     def ConnectAPI(self, API_key=None, username=None, password=None):
-        print("ConnectAPI")
+        # print("ConnectAPI")
         try:
             if API_key:
                 self.authenticate_with_apikey(API_key)
@@ -233,7 +233,7 @@ class WaApiClient(object):
         return False
 
     def _make_api_request(self, request_string, api_request_object=None, method=None):
-        print("_make_api_request")
+        # print("_make_api_request")
         try:    
             return self.execute_request(request_string, api_request_object, method)
         except urllib.error.HTTPError as e:
