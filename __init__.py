@@ -42,7 +42,8 @@ class WaApiClient(object):
         scope = "auto" if scope is None else scope
         data = {
             "grant_type": "client_credentials",
-            "scope": scope
+            "scope": scope,
+            "obtain_refresh_token":"true",
         }
         encoded_data = urllib.parse.urlencode(data).encode()
         request = urllib.request.Request(self.auth_endpoint, encoded_data, method="POST")
@@ -56,6 +57,7 @@ class WaApiClient(object):
 
         self._token = WaApiClient._parse_response(response)
         self._token['retrieved_at'] = datetime.datetime.now()
+        # print(self._token)
         
         self.set_endpoint_to_default_account()
 
@@ -145,7 +147,8 @@ class WaApiClient(object):
             else:
                 method = "POST"
 
-        # print(api_url)
+        print("API URL:",api_url)
+
 
         request = urllib.request.Request(api_url, method=method)
         if api_request_object is not None:
