@@ -4,7 +4,7 @@ Adapted from: https://github.com/WildApricot/ApiSamples/blob/master/python/WaApi
 
 import logging
 
-import datetime
+import datetime, pytz
 import urllib.request
 import urllib.response
 import urllib.error
@@ -264,14 +264,10 @@ class WaApiClient(object):
         return py_date
 
     def DateTimeToWADate(self, py_date):
-        # if isinstance(py_date, datetime.datetime):
+        if not py_date.tzinfo==None:
+            utc = pytz.timezone("UTC")
+            py_date = py_date.astimezone(utc)
         return py_date.strftime('%Y-%m-%dT%H:%M:%S')
-        # elif isinstance(py_date, datetime.date):
-        #     return py_date.strftime('%d+%b+%Y')
-        # elif isinstance(py_date, datetime.date):
-        #     return py_date.strftime('%Y-%m-%d')
-
-
 
 
 ##############################
