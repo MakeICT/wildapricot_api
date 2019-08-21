@@ -11,6 +11,7 @@ import urllib.error
 import urllib.parse
 import json
 import base64
+from urllib.error import HTTPError
 
 from pprint import pprint
 
@@ -109,9 +110,20 @@ class WaApiClient(object):
         request.add_header("ContentType", "application/x-www-form-urlencoded")
         auth_header = base64.standard_b64encode((self.client_id + ':' + self.client_secret).encode()).decode()
         request.add_header("Authorization", 'Basic ' + auth_header)
-        response = urllib.request.urlopen(request)
 
-        return response
+        try:
+            response = urllib.request.urlopen(request)
+        except HTTPError as err:
+            if err.code == 400:
+                return False
+            else:
+                raise
+
+
+        if response.code == 200:
+            return True
+        else:
+            return False
 
         # self._token = WaApiClient._parse_response(response)
         # self._token['retrieved_at'] = datetime.datetime.now()
