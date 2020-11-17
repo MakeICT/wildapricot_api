@@ -272,13 +272,21 @@ class WaApiClient(object):
 
     def WADateToDateTime(self, wa_date):
         fixed_date = wa_date[0:22]+wa_date[23:]
-        py_date = datetime.datetime.strptime(fixed_date, '%Y-%m-%dT%H:%M:%S%z')
+        try:
+            py_date = datetime.datetime.strptime(fixed_date, '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError:
+            py_date = datetime.datetime.strptime(fixed_date, '%Y-%m-%dT%H:%M:%S')
+
         return py_date
 
     def DateTimeToWADate(self, py_date):
-        if not py_date.tzinfo==None:
-            utc = pytz.timezone("UTC")
-            py_date = py_date.astimezone(utc)
+        try:
+            if not py_date.tzinfo==None:
+                utc = pytz.timezone("UTC")
+                py_date = py_date.astimezone(utc)
+        except AttributeError:
+            pass
+
         return py_date.strftime('%Y-%m-%dT%H:%M:%S')
 
 
