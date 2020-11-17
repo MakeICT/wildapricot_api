@@ -363,10 +363,12 @@ class WaApiClient(object):
         #print(contact)
         return self.UpdateContact(contact_id, contact)
 
-    def SetMemberGroups(self, contact_id, group_ids):
+    def SetMemberGroups(self, contact_id, group_ids, append=True):
         data = self._make_api_request('/Contacts/%d'%contact_id)
         for field in data["FieldValues"]:
             if field["SystemCode"] == "Groups":
+                if not append:
+                    field["Value"].clear()
                 for group_id in group_ids:
                     field["Value"].append({'Id': group_id})
         return self._make_api_request('https://api.wildapricot.org/v2.1/accounts/84576/Contacts/%d' %(contact_id), data, method="PUT")
