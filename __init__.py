@@ -20,6 +20,8 @@ class WaApiClient(object):
     """Wild apricot API client."""
     auth_endpoint = "https://oauth.wildapricot.org/auth/token"
     api_endpoint = "https://api.wildapricot.org"
+    public_api_endpoint = "https://api.wildapricot.org/publicview"
+
     _token = None
     client_id = None
     client_secret = None
@@ -133,8 +135,9 @@ class WaApiClient(object):
     def set_endpoint_to_default_account(self):
         accounts = self.execute_request("/v2.1/Accounts")
         self.api_endpoint += '/v2.1/Accounts/' + str(accounts[0]['Id']) + '/'
+        self.public_api_endpoint += '/v1/Accounts/' + str(accounts[0]['Id']) + '/'
 
-    def execute_request(self, api_url, api_request_object=None, method=None):
+    def execute_request(self, api_url, api_request_object=None, method=None, public=False):
         """
         perform api request and return result as an instance of ApiObject or list of ApiObjects
 
@@ -148,7 +151,10 @@ class WaApiClient(object):
                                "Call authenticate_with_apikey or authenticate_with_contact_credentials first.")
 
         if not api_url.startswith("http"):
-            api_url = self.api_endpoint + api_url
+            if public:
+                api_url = self.public_api_endpoint + api_url
+            else:
+                api_url = self.api_endpoint + api_url
 
         if '?' not in api_url:
             api_url += '/'
@@ -159,7 +165,7 @@ class WaApiClient(object):
             else:
                 method = "POST"
 
-        print("API URL:",api_url)
+        logging.error(f"API URL: {api_url}")
 
 
         request = urllib.request.Request(api_url, method=method)
@@ -176,7 +182,7 @@ class WaApiClient(object):
             return WaApiClient._parse_response(response)
         except urllib.error.HTTPError as httpErr:
             if httpErr.code == 400:
-                raise Exception(httpErr.read())
+                raise
             else:
                 raise
 
@@ -300,7 +306,7 @@ class WaApiClient(object):
 # Contacts
 ##############################
     def GetMe(self):
-        return self._make_api_request('/Contacts/me')
+        return self._make_api_request('/contacts/me')
 
     def GetAllContactIDs(self):
         return self._make_api_request('/Contacts/?$async=false&idsOnly')
