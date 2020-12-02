@@ -278,13 +278,21 @@ class WaApiClient(object):
 
     def WADateToDateTime(self, wa_date):
         fixed_date = wa_date[0:22]+wa_date[23:]
-        py_date = datetime.datetime.strptime(fixed_date, '%Y-%m-%dT%H:%M:%S%z')
+        try:
+            py_date = datetime.datetime.strptime(fixed_date, '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError:
+            py_date = datetime.datetime.strptime(fixed_date, '%Y-%m-%dT%H:%M:%S')
+
         return py_date
 
     def DateTimeToWADate(self, py_date):
-        if not py_date.tzinfo==None:
-            utc = pytz.timezone("UTC")
-            py_date = py_date.astimezone(utc)
+        try:
+            if not py_date.tzinfo==None:
+                utc = pytz.timezone("UTC")
+                py_date = py_date.astimezone(utc)
+        except AttributeError:
+            pass
+
         return py_date.strftime('%Y-%m-%dT%H:%M:%S')
 
 
@@ -361,10 +369,12 @@ class WaApiClient(object):
         #print(contact)
         return self.UpdateContact(contact_id, contact)
 
-    def SetMemberGroups(self, contact_id, group_ids):
+    def SetMemberGroups(self, contact_id, group_ids, append=True):
         data = self._make_api_request('/Contacts/%d'%contact_id)
         for field in data["FieldValues"]:
             if field["SystemCode"] == "Groups":
+                if not append:
+                    field["Value"].clear()
                 for group_id in group_ids:
                     field["Value"].append({'Id': group_id})
         return self._make_api_request('https://api.wildapricot.org/v2.1/accounts/84576/Contacts/%d' %(contact_id), data, method="PUT")
