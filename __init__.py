@@ -85,6 +85,31 @@ class WaApiClient(object):
         request.add_header("Authorization", 'Basic ' + auth_header)
         # print(request.__dict__)
 
+        response = urllib.request.urlopen(request)
+        self._token = WaApiClient._parse_response(response)
+        self._token['retrieved_at'] = datetime.datetime.now()
+
+        self.set_endpoint_to_default_account()
+
+    def authenticate_with_oauth_code(self, code, redirect_uri):
+        """perform authentication with oauth code and store result for execute_request method
+
+        code -- The authorization code returned by Wild Apricot's single sign-on service.
+        redirect_uri -- Must match the URL specified in the initial Wild Apricot authentication request.
+        """
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "scope": 'contacts_me'
+        }
+        encoded_data = urllib.parse.urlencode(data).encode()
+        request = urllib.request.Request(self.auth_endpoint, encoded_data, method="POST")
+        request.add_header("Content-Type", "application/x-www-form-urlencoded")
+        auth_header = base64.standard_b64encode((self.client_id + ':' + self.client_secret).encode()).decode()
+        request.add_header("Authorization", 'Basic ' + auth_header)
+        print(request.__dict__)
 
         response = urllib.request.urlopen(request)
         # print(response.code)
@@ -94,7 +119,7 @@ class WaApiClient(object):
         self.set_endpoint_to_default_account()
 
     def authenticate_contact(self, username, password, scope=None):
-        """perform authentication by contact credentials and store result for execute_request method
+        """verify a user's login credentials
 
         username -- typically a contact email
         password -- contact password
@@ -109,7 +134,7 @@ class WaApiClient(object):
         }
         encoded_data = urllib.parse.urlencode(data).encode()
         request = urllib.request.Request(self.auth_endpoint, encoded_data, method="POST")
-        request.add_header("ContentType", "application/x-www-form-urlencoded")
+        request.add_header("Content-Type", "application/x-www-form-urlencoded")
         auth_header = base64.standard_b64encode((self.client_id + ':' + self.client_secret).encode()).decode()
         request.add_header("Authorization", 'Basic ' + auth_header)
 
@@ -133,7 +158,11 @@ class WaApiClient(object):
         # self.set_endpoint_to_default_account()
 
     def set_endpoint_to_default_account(self):
-        accounts = self.execute_request("/v2.1/Accounts")
+        try:
+            accounts = self.execute_request("/v2.1/Accounts")
+        except HTTPError:
+            accounts = self.execute_request("/v1/Accounts", public=True)
+            
         self.api_endpoint += '/v2.1/Accounts/' + str(accounts[0]['Id']) + '/'
         self.public_api_endpoint += '/v1/Accounts/' + str(accounts[0]['Id']) + '/'
 
@@ -235,7 +264,14 @@ class WaApiClient(object):
         else:
             return decoded
 
+    def OauthURL(self, redirect_uri):
+        q = {'client_id': self.client_id,
+             'redirect_uri': redirect_uri,
+             'scope': 'contacts_me',
+             'state': ''}
+        url = "https://makeict.wildapricot.org/sys/login/OAuthLogin?" + urllib.parse.urlencode(q)
 
+        return url
 
     def ConnectAPI(self, API_key=None, username=None, password=None):
         # print("ConnectAPI")
@@ -325,7 +361,7 @@ class WaApiClient(object):
         return contact  
 
     def GetContactByEmail(self, contact_email): 
-        contact = self._make_api_request('/Contacts/?$async=false&$filter=email+eq+' + contact_email)
+        contact = self._make_api_request('/Contacts/?$async=false&$filter=email+eq+' + contact_email)[0]
         return contact
 
     def GetContactByNameAndDOB(self, contact_first_name, contact_last_name, contact_DOB):
